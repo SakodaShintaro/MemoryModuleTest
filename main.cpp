@@ -59,8 +59,8 @@ int main() {
         }
 
         int64_t seq_len = content_len * 2;
-        std::vector<std::vector<float>> x_seq_list(seq_len + 1), t_seq_list(seq_len + 1);
-        for (int64_t i = 0; i <= seq_len; i++) {
+        std::vector<std::vector<float>> x_seq_list(seq_len), t_seq_list(seq_len);
+        for (int64_t i = 0; i < seq_len; i++) {
             if (i < content_len) {
                 x_seq_list[i] = onehot(content[i], X);
             } else if (i == content_len) {
@@ -69,8 +69,8 @@ int main() {
                 x_seq_list[i].assign(X, 0);
             }
 
-            if (i > content_len) {
-                t_seq_list[i] = onehot(content[i - content_len - 1], X);
+            if (i >= content_len) {
+                t_seq_list[i] = onehot(content[i - content_len], X);
             }
         }
 
@@ -78,12 +78,12 @@ int main() {
         std::vector<torch::Tensor> losses, accuracies;
 
         std::vector<int64_t> infer;
-        for (int64_t cnt = 0; cnt <= seq_len; cnt++) {
-            torch::Tensor x = torch::tensor(x_seq_list[cnt]).view({ 1, X });
+        for (int64_t i = 0; i < seq_len; i++) {
+            torch::Tensor x = torch::tensor(x_seq_list[i]).view({ 1, X });
             torch::Tensor y = model->forward(x);
 
-            if (cnt > content_len) {
-                torch::Tensor t = torch::tensor(t_seq_list[cnt]).view({ 1, Y });
+            if (i >= content_len) {
+                torch::Tensor t = torch::tensor(t_seq_list[i]).view({ 1, Y });
 
                 infer.push_back(torch::argmax(y).item<int64_t>());
 
