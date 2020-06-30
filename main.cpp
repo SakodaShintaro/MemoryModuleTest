@@ -38,7 +38,6 @@ int main() {
 
     constexpr int64_t DATA_NUM = 40000;
     constexpr int64_t INTERVAL = DATA_NUM / 50;
-    std::vector<float> loss_per_interval, acc_per_interval;
     float curr_loss = 0.0, curr_acc = 0.0;
 
     std::mt19937_64 engine(std::random_device{}());
@@ -116,8 +115,6 @@ int main() {
         if (data_cnt % INTERVAL == 0) {
             curr_loss /= INTERVAL;
             curr_acc /= INTERVAL;
-            loss_per_interval.push_back(curr_loss);
-            acc_per_interval.push_back(curr_acc);
             std::cout << timer.elapsedTimeStr() << "  " << std::setw(std::to_string(DATA_NUM).size()) << data_cnt << "  " << curr_loss << "  " << curr_acc << std::endl;
             learn_log << timer.elapsedTimeStr() << "  " << std::setw(std::to_string(DATA_NUM).size()) << data_cnt << "  " << curr_loss << "  " << curr_acc << std::endl;
             curr_loss = 0;
