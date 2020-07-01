@@ -50,6 +50,8 @@ int main() {
     std::ofstream learn_log("learn_log.txt");
     std::cout << std::fixed;
     learn_log << std::fixed;
+    std::cout << "経過時間\t学習データ数\t損失\t精度" << std::endl;
+    learn_log << "経過時間\t学習データ数\t損失\t精度" << std::endl;
 
     for (int64_t data_cnt = 1; data_cnt <= DATA_NUM; data_cnt++) {
         int64_t content_len = dist_len(engine);
@@ -107,7 +109,7 @@ int main() {
 
         torch::Tensor loss = torch::stack(losses).mean();
         torch::Tensor accuracy = torch::stack(accuracies).mean();
-        std::cout << timer.elapsedTimeStr() << "  " << std::setw(std::to_string(DATA_NUM).size()) << data_cnt << "  " << loss.item<float>() << "  " << accuracy.item<float>() << "\r" << std::flush;
+        std::cout << timer.elapsedTimeStr() << "\t" << std::setw(std::to_string(DATA_NUM).size()) << data_cnt << "\t" << loss.item<float>() << "\t" << accuracy.item<float>() << "\r" << std::flush;
 
         curr_loss += loss.item<float>();
         curr_acc += accuracy.item<float>();
@@ -115,8 +117,8 @@ int main() {
         if (data_cnt % INTERVAL == 0) {
             curr_loss /= INTERVAL;
             curr_acc /= INTERVAL;
-            std::cout << timer.elapsedTimeStr() << "  " << std::setw(std::to_string(DATA_NUM).size()) << data_cnt << "  " << curr_loss << "  " << curr_acc << std::endl;
-            learn_log << timer.elapsedTimeStr() << "  " << std::setw(std::to_string(DATA_NUM).size()) << data_cnt << "  " << curr_loss << "  " << curr_acc << std::endl;
+            std::cout << timer.elapsedTimeStr() << "\t" << std::setw(std::to_string(DATA_NUM).size()) << data_cnt << "\t" << curr_loss << "\t" << curr_acc << std::endl;
+            learn_log << timer.elapsedTimeStr() << "\t" << std::setw(std::to_string(DATA_NUM).size()) << data_cnt << "\t" << curr_loss << "\t" << curr_acc << std::endl;
             curr_loss = 0;
             curr_acc = 0;
         }
