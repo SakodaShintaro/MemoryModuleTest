@@ -7,17 +7,22 @@
 
 class ControllerImpl : public torch::nn::Module {
 public:
-    ControllerImpl(int64_t d_in, int64_t d_out, int64_t hidden_dim = 512) {
+    ControllerImpl(int64_t d_in, int64_t d_out, int64_t num_layers = 1, int64_t hidden_size = 512) {
 #ifdef USE_LSTM_CONTROLLER
-        l1 = register_module("l1", torch::nn::LSTM(d_in, hidden_dim));
+        hidden_size_ = hidden_size;
+        num_layers_ = num_layers;
+        torch::nn::LSTMOptions option(d_in, hidden_size);
+        option.num_layers(num_layers);
+        l1 = register_module("l1", torch::nn::LSTM(option));
 #else
-        l1 = register_module("l1", torch::nn::Linear(d_in, hidden_dim));
+        l1 = register_module("l1", torch::nn::Linear(d_in, hidden_size));
 #endif
-        l2 = register_module("l2", torch::nn::Linear(hidden_dim, d_out));
+        l2 = register_module("l2", torch::nn::Linear(hidden_size, d_out));
     }
     torch::Tensor forward(const torch::Tensor& x) {
 #ifdef USE_LSTM_CONTROLLER
-        auto[output, h_and_c] = l1->forward(x);
+        auto[output, h_and_c] = l1->forward(x, std::make_tuple(h_, c_));
+        std::tie(h_, c_) = h_and_c;
         return l2->forward(output);
 #else
         return l2->forward(l1->forward(x));
@@ -25,12 +30,18 @@ public:
     }
     void resetState() {
 #ifdef USE_LSTM_CONTROLLER
+        h_ = torch::zeros({ num_layers_, 1, hidden_size_ });
+        c_ = torch::zeros({ num_layers_, 1, hidden_size_ });
 #else
 #endif
     }
 private:
 #ifdef USE_LSTM_CONTROLLER
     torch::nn::LSTM l1{ nullptr };
+    int64_t num_layers_;
+    int64_t hidden_size_;
+    torch::Tensor h_;
+    torch::Tensor c_;
 #else
     torch::nn::Linear l1{ nullptr };
 #endif
