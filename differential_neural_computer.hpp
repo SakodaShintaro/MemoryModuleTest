@@ -3,25 +3,37 @@
 
 #include <torch/torch.h>
 
+#define USE_LSTM_CONTROLLER
+
 class ControllerImpl : public torch::nn::Module {
 public:
-    ControllerImpl(int64_t d_in, int64_t d_out) {
-//        l1 = register_module("l1", torch::nn::LSTM(d_in, d_out));
-        constexpr int64_t hidden_dim = 512;
+    ControllerImpl(int64_t d_in, int64_t d_out, int64_t hidden_dim = 512) {
+#ifdef USE_LSTM_CONTROLLER
+        l1 = register_module("l1", torch::nn::LSTM(d_in, hidden_dim));
+#else
         l1 = register_module("l1", torch::nn::Linear(d_in, hidden_dim));
+#endif
         l2 = register_module("l2", torch::nn::Linear(hidden_dim, d_out));
     }
     torch::Tensor forward(const torch::Tensor& x) {
-//        auto result = l1->forward(x);
-//        auto&[out1, out2] = result;
-//        return l2->forward(out1);
+#ifdef USE_LSTM_CONTROLLER
+        auto[output, h_and_c] = l1->forward(x);
+        return l2->forward(output);
+#else
         return l2->forward(l1->forward(x));
+#endif
     }
     void resetState() {
+#ifdef USE_LSTM_CONTROLLER
+#else
+#endif
     }
 private:
-//    torch::nn::LSTM l1{ nullptr };
+#ifdef USE_LSTM_CONTROLLER
+    torch::nn::LSTM l1{ nullptr };
+#else
     torch::nn::Linear l1{ nullptr };
+#endif
     torch::nn::Linear l2{ nullptr };
 };
 TORCH_MODULE(Controller);
