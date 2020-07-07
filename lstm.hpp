@@ -2,7 +2,6 @@
 #define LSTM_HPP
 
 #include <torch/torch.h>
-#include <cublas_v2.h>
 
 class LSTMImpl : public torch::nn::Module {
 public:
