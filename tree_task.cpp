@@ -196,16 +196,16 @@ void treeTask() {
 void treeTaskBatch() {
     constexpr int64_t MAX_NODE_NUM = 6;
     constexpr int64_t INPUT_DIM = MAX_NODE_NUM + 1;
-    constexpr int64_t Y = INPUT_DIM;
+    constexpr int64_t OUTPUT_DIM = MAX_NODE_NUM;
 
 #ifdef USE_LSTM
-    LSTM model(INPUT_DIM, Y);
+    LSTM model(INPUT_DIM, OUTPUT_DIM);
 #elif defined(USE_DNC)
     constexpr int64_t N = 10;
     constexpr int64_t W = 10;
     constexpr int64_t R = 2;
 
-    DNC model(INPUT_DIM, Y, N, W, R);
+    DNC model(INPUT_DIM, OUTPUT_DIM, N, W, R);
 #endif
 
     //Optimizerの準備
@@ -227,60 +227,76 @@ void treeTaskBatch() {
 
     std::ofstream learn_log("learn_log.txt");
     DoubleOstream ost(std::cout, learn_log);
-    ost << "経過時間\t学習データ数\t損失\t精度\t完全一致精度" << std::endl << std::fixed;
+    ost << "経過時間\t学習ステップ数\t損失\t精度\t完全一致精度" << std::endl << std::fixed;
 
     for (int64_t step = 1; step <= STEP_NUM; step++) {
         int64_t node_num = dist_node_num(engine);
-        int64_t input_len = 2 * (node_num - 1);
+        int64_t input_len = 2 * (node_num - 1) + 1;
         int64_t seq_len = (input_len + node_num);
 
         std::vector<float> input, teacher;
+        std::vector<Tree> trees(BATCH_SIZE);
+        std::vector<std::vector<int64_t>> dfs_results(BATCH_SIZE);
+        std::vector<std::vector<int64_t>> bfs_results(BATCH_SIZE);
         for (int64_t b = 0; b < BATCH_SIZE; b++) {
-            //木をランダムに構築
-            Tree tree = makeTree(node_num);
-
-            //rootをランダムに選択し、dfs, bfsの結果を取得
+            trees[b] = makeTree(node_num);
             std::uniform_int_distribution<int64_t> dist_root(0, node_num - 1);
             int64_t root = dist_root(engine);
-            std::vector<int64_t> dfs_result = dfs(tree, root);
-            std::vector<int64_t> bfs_result = bfs(tree, root);
-            assert(dfs_result.size() == (uint64_t)input_len);
-            assert(bfs_result.size() == (uint64_t)node_num);
+            dfs_results[b] = dfs(trees[b], root);
+            bfs_results[b] = bfs(trees[b], root);
+            assert(dfs_results[b].size() == (uint64_t)input_len);
+            assert(bfs_results[b].size() == (uint64_t)node_num);
+        }
 
-            //入力の構築
-            for (int64_t i = 0; i < seq_len; i++) {
+        for (int64_t i = 0; i < seq_len; i++) {
+            for (int64_t b = 0; b < BATCH_SIZE; b++) {
+                //入力の構築
                 std::vector<float> add;
                 if (i < input_len) {
-                    add = onehot(dfs_result[i], INPUT_DIM);
+                    add = onehot(dfs_results[b][i], INPUT_DIM);
                 } else if (i == input_len) {
                     add = onehot(MAX_NODE_NUM, INPUT_DIM);
                 } else {
                     add.assign(INPUT_DIM, 0);
                 }
                 input.insert(input.end(), add.begin(), add.end());
-            }
 
-            //教師の構築
-            for (int64_t i = 0; i < node_num; i++) {
-                std::vector<float> add = onehot(bfs_result[i], INPUT_DIM);
+                //教師の構築
+                if (i < input_len) {
+                    add.assign(OUTPUT_DIM, 0);
+                } else {
+                    add = onehot(bfs_results[b][i - input_len], OUTPUT_DIM);
+                }
                 teacher.insert(teacher.end(), add.begin(), add.end());
             }
         }
 
-        torch::Tensor input_tensor = torch::tensor(input);
-        torch::Tensor teacher_tensor = torch::tensor(teacher);
+        torch::Tensor input_tensor = torch::tensor(input).view({ seq_len, BATCH_SIZE, INPUT_DIM });
+        torch::Tensor teacher_tensor = torch::tensor(teacher).view({ seq_len, BATCH_SIZE, OUTPUT_DIM });
+        teacher_tensor = teacher_tensor.slice(0, input_len);
 
         //(seq_len, batch, output_size)
         torch::Tensor output_without_softmax = model->forwardSequence(input_tensor);
 
         //assert(false);
         //ここでスライス
-        torch::Tensor sliced_output = output_without_softmax;
+        torch::Tensor sliced_output = output_without_softmax.slice(0, input_len);
 
         //損失計算(方向とかに注意)
-        torch::Tensor loss = torch::sum(-teacher_tensor * torch::log_softmax(sliced_output, -1));
-        torch::Tensor accuracy = loss;
-        torch::Tensor perfect_acc = accuracy;
+        torch::Tensor loss = (-teacher_tensor * torch::log_softmax(sliced_output, -1)).sum(0).mean();
+
+        //argmaxを取る
+        torch::Tensor infer = torch::argmax(sliced_output, 2).slice(1, 0, MAX_NODE_NUM);
+        torch::Tensor label = torch::argmax(teacher_tensor, 2);
+
+        torch::Tensor consistency = (infer == label).to(torch::kFloat32);
+
+        //全体の平均
+        torch::Tensor accuracy = consistency.mean();
+
+        //系列全体が合っているかどうか
+        consistency = (consistency.mean(0) == 1.0).to(torch::kFloat32);
+        torch::Tensor perfect_acc = consistency.mean();
 
         std::cout << timer.elapsedTimeStr() << "\t"
                   << std::setw(std::to_string(STEP_NUM).size()) << step << "\t"
