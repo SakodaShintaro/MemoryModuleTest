@@ -12,6 +12,9 @@ public:
 
     //内部状態をリセットする関数:上のforwardを使わないようにできれば自然とこの関数も不要になる
     void resetState();
+
+    //shape(seq_len, batch, input_size)のinputを入力として(seq_len, batch, output_size)をoutputする関数
+    torch::Tensor forwardSequence(const torch::Tensor& input);
 private:
     int64_t input_size_;
     int64_t num_layers_;

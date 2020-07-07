@@ -35,3 +35,16 @@ void LSTMImpl::resetState() {
     h_ = torch::zeros({ num_layers_, 1, hidden_size_ });
     c_ = torch::zeros({ num_layers_, 1, hidden_size_ });
 }
+
+torch::Tensor LSTMImpl::forwardSequence(const torch::Tensor& input) {
+    //lstmは入力(input, (h_0, c_0))
+    //inputのshapeは(seq_len, batch, input_size)
+
+    //outputのshapeは(seq_len, batch, num_directions * hidden_size)
+    auto[output, h_and_c] = lstm_->forward(input);
+    std::tie(h_, c_) = h_and_c;
+
+    output = final_layer_->forward(output);
+
+    return output;
+}

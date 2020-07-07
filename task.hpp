@@ -6,6 +6,7 @@
 
 void echoTask();
 void treeTask();
+void treeTaskBatch();
 
 //---------------------------
 //    共通して使う関数の記述
