@@ -6,7 +6,7 @@
 
 class LSTMImpl : public torch::nn::Module {
 public:
-    LSTMImpl(int64_t x, int64_t y, int64_t num_layers = 1, int64_t hidden_size = 512) : X(x), Y(y), num_layers_(num_layers), hidden_size_(hidden_size) {
+    LSTMImpl(int64_t x, int64_t y, int64_t num_layers = 1, int64_t hidden_size = 512) : X(x), num_layers_(num_layers), hidden_size_(hidden_size) {
         torch::nn::LSTMOptions option(x, hidden_size);
         option.num_layers(num_layers);
         lstm_ = register_module("lstm_", torch::nn::LSTM(option));
@@ -38,7 +38,7 @@ public:
         c_ = torch::zeros({ num_layers_, 1, hidden_size_ });
     }
 private:
-    int64_t X, Y, N, W, R;
+    int64_t X;
     int64_t num_layers_;
     int64_t hidden_size_;
     torch::nn::LSTM lstm_{ nullptr };
