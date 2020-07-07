@@ -244,8 +244,8 @@ void treeTaskBatch() {
             int64_t root = dist_root(engine);
             std::vector<int64_t> dfs_result = dfs(tree, root);
             std::vector<int64_t> bfs_result = bfs(tree, root);
-            assert(dfs_result.size() == input_len);
-            assert(bfs_result.size() == node_num);
+            assert(dfs_result.size() == (uint64_t)input_len);
+            assert(bfs_result.size() == (uint64_t)node_num);
 
             //入力の構築
             for (int64_t i = 0; i < seq_len; i++) {
