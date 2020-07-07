@@ -1,5 +1,6 @@
+#include "task.hpp"
+
 #include <iostream>
-#include <vector>
 #include <stack>
 #include <random>
 #include <torch/torch.h>
@@ -71,12 +72,6 @@ std::vector<int64_t> bfs(const Tree& tree, int64_t node) {
     }
 
     return result;
-}
-
-std::vector<float> onehot(int64_t x, int64_t n) {
-    std::vector<float> ret(n, 0);
-    ret[x] = 1.0;
-    return ret;
 }
 
 void treeTask() {
