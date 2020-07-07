@@ -5,18 +5,16 @@
 #include "timer.hpp"
 #include "differential_neural_computer.hpp"
 #include "lstm.hpp"
+#include "tree_task.hpp"
 
 //どっちかを使う
 #define USE_LSTM
 //#define USE_DNC
 
-std::vector<float> onehot(int64_t x, int64_t n) {
-    std::vector<float> ret(n, 0);
-    ret[x] = 1.0;
-    return ret;
-}
-
 int main() {
+    treeTask();
+    return 0;
+
     constexpr int64_t X = 11;
     constexpr int64_t Y = X;
 

@@ -12,6 +12,6 @@ find_package(Torch REQUIRED)
 add_executable(MemoryModuleTest main.cpp
                                 differential_neural_computer.cpp
                                 lstm.cpp
-)
+        )
 
 target_link_libraries(MemoryModuleTest  "${TORCH_LIBRARIES}")
