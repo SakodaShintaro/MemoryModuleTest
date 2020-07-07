@@ -5,6 +5,7 @@
 #include <random>
 #include <torch/torch.h>
 #include "timer.hpp"
+#include "double_ostream.hpp"
 #include "differential_neural_computer.hpp"
 #include "lstm.hpp"
 
@@ -106,10 +107,8 @@ void treeTask() {
     timer.start();
 
     std::ofstream learn_log("learn_log.txt");
-    std::cout << std::fixed;
-    learn_log << std::fixed;
-    std::cout << "経過時間\t学習データ数\t損失\t精度\t完全一致精度" << std::endl;
-    learn_log << "経過時間\t学習データ数\t損失\t精度\t完全一致精度" << std::endl;
+    DoubleOstream ost(std::cout, learn_log);
+    ost << "経過時間\t学習データ数\t損失\t精度\t完全一致精度" << std::endl << std::fixed;
 
     for (int64_t data_cnt = 1; data_cnt <= DATA_NUM; data_cnt++) {
         int64_t node_num = dist_node_num(engine);
@@ -178,8 +177,11 @@ void treeTask() {
             curr_loss /= INTERVAL;
             curr_acc /= INTERVAL;
             curr_perf_acc /= INTERVAL;
-            std::cout << timer.elapsedTimeStr() << "\t" << std::setw(std::to_string(DATA_NUM).size()) << data_cnt << "\t" << curr_loss << "\t" << curr_acc << "\t" << curr_perf_acc << std::endl;
-            learn_log << timer.elapsedTimeStr() << "\t" << std::setw(std::to_string(DATA_NUM).size()) << data_cnt << "\t" << curr_loss << "\t" << curr_acc << "\t" << curr_perf_acc << std::endl;
+            ost << timer.elapsedTimeStr() << "\t"
+                << std::setw(std::to_string(DATA_NUM).size()) << data_cnt << "\t"
+                << curr_loss << "\t"
+                << curr_acc << "\t"
+                << curr_perf_acc << std::endl;
             curr_loss = 0;
             curr_acc = 0;
             curr_perf_acc = 0;
@@ -224,10 +226,8 @@ void treeTaskBatch() {
     timer.start();
 
     std::ofstream learn_log("learn_log.txt");
-    std::cout << std::fixed;
-    learn_log << std::fixed;
-    std::cout << "経過時間\t学習データ数\t損失\t精度\t完全一致精度" << std::endl;
-    learn_log << "経過時間\t学習データ数\t損失\t精度\t完全一致精度" << std::endl;
+    DoubleOstream ost(std::cout, learn_log);
+    ost << "経過時間\t学習データ数\t損失\t精度\t完全一致精度" << std::endl << std::fixed;
 
     for (int64_t step = 1; step <= STEP_NUM; step++) {
         int64_t node_num = dist_node_num(engine);
@@ -296,8 +296,11 @@ void treeTaskBatch() {
             curr_loss /= INTERVAL;
             curr_acc /= INTERVAL;
             curr_perf_acc /= INTERVAL;
-            std::cout << timer.elapsedTimeStr() << "\t" << std::setw(std::to_string(STEP_NUM).size()) << step << "\t" << curr_loss << "\t" << curr_acc << "\t" << curr_perf_acc << std::endl;
-            learn_log << timer.elapsedTimeStr() << "\t" << std::setw(std::to_string(STEP_NUM).size()) << step << "\t" << curr_loss << "\t" << curr_acc << "\t" << curr_perf_acc << std::endl;
+            ost << timer.elapsedTimeStr() << "\t"
+                << std::setw(std::to_string(STEP_NUM).size()) << step << "\t"
+                << curr_loss << "\t"
+                << curr_acc << "\t"
+                << curr_perf_acc << std::endl;
             curr_loss = 0;
             curr_acc = 0;
             curr_perf_acc = 0;
