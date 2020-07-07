@@ -41,7 +41,7 @@ int main() {
     float curr_loss = 0.0, curr_acc = 0.0;
 
     std::mt19937_64 engine(std::random_device{}());
-    std::uniform_int_distribution<int64_t> dist_len(4, 7);
+    std::uniform_int_distribution<int64_t> dist_len(1, 15);
     std::uniform_int_distribution<int64_t> dist_X(0, X - 2);
 
     Timer timer;
