@@ -5,11 +5,14 @@
 
 class LSTMImpl : public torch::nn::Module {
 public:
-    LSTMImpl(int64_t x, int64_t y, int64_t num_layers = 1, int64_t hidden_size = 512) : X(x), num_layers_(num_layers), hidden_size_(hidden_size) {
-        torch::nn::LSTMOptions option(x, hidden_size);
+    LSTMImpl(int64_t input_size, int64_t output_size, int64_t num_layers = 1, int64_t hidden_size = 512) :
+    input_size_(input_size),
+    num_layers_(num_layers),
+    hidden_size_(hidden_size) {
+        torch::nn::LSTMOptions option(input_size, hidden_size);
         option.num_layers(num_layers);
         lstm_ = register_module("lstm_", torch::nn::LSTM(option));
-        final_layer_ = register_module("final_layer_", torch::nn::Linear(hidden_size, y));
+        final_layer_ = register_module("final_layer_", torch::nn::Linear(hidden_size, output_size));
         resetState();
     }
 
@@ -20,10 +23,11 @@ public:
         //h_0, c_0のshapeは(num_layers_ * num_directions, batch, hidden_size_)
         //出力はoutput, (h_n, c_n)
 
-        //実践的に入力は系列を1個ずつにバラしたものが入るのでshapeは(1, X)
+        //実践的に入力は系列を1個ずつにバラしたものが入るのでshapeは(1, input_size_)
         //まずそれを直す
-        torch::Tensor input = x.view({ 1, 1, X });
+        torch::Tensor input = x.view({ 1, 1, input_size_ });
 
+        //outputのshapeは(seq_len, batch, num_directions * hidden_size)
         auto[output, h_and_c] = lstm_->forward(input, std::make_tuple(h_, c_));
         std::tie(h_, c_) = h_and_c;
 
@@ -37,7 +41,7 @@ public:
         c_ = torch::zeros({ num_layers_, 1, hidden_size_ });
     }
 private:
-    int64_t X;
+    int64_t input_size_;
     int64_t num_layers_;
     int64_t hidden_size_;
     torch::nn::LSTM lstm_{ nullptr };
