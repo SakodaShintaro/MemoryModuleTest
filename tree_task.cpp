@@ -194,7 +194,7 @@ void treeTask() {
 }
 
 void treeTaskBatch() {
-    constexpr int64_t MAX_NODE_NUM = 6;
+    constexpr int64_t MAX_NODE_NUM = 20;
     constexpr int64_t INPUT_DIM = MAX_NODE_NUM + 1;
     constexpr int64_t OUTPUT_DIM = MAX_NODE_NUM;
 
@@ -215,7 +215,7 @@ void treeTaskBatch() {
     torch::optim::Adam optimizer(model->parameters());
 
     constexpr int64_t STEP_NUM = 50000;
-    constexpr int64_t BATCH_SIZE = 4;
+    constexpr int64_t BATCH_SIZE = 64;
     constexpr int64_t INTERVAL = STEP_NUM / 25;
     float curr_loss = 0.0, curr_acc = 0.0, curr_perf_acc = 0.0;
 
@@ -278,23 +278,21 @@ void treeTaskBatch() {
         //(seq_len, batch, output_size)
         torch::Tensor output_without_softmax = model->forwardSequence(input_tensor);
 
-        //assert(false);
-        //ここでスライス
+        //ここでスライス(node_num, batch, output_size)
         torch::Tensor sliced_output = output_without_softmax.slice(0, input_len);
 
-        //損失計算(方向とかに注意)
+        //損失計算(一度ノード方向に和を取ってから平均)
         torch::Tensor loss = (-teacher_tensor * torch::log_softmax(sliced_output, -1)).sum(0).mean();
 
         //argmaxを取る
-        torch::Tensor infer = torch::argmax(sliced_output, 2).slice(1, 0, MAX_NODE_NUM);
+        torch::Tensor infer = torch::argmax(sliced_output, 2);
         torch::Tensor label = torch::argmax(teacher_tensor, 2);
 
+        //全体の平均精度(一致度)
         torch::Tensor consistency = (infer == label).to(torch::kFloat32);
-
-        //全体の平均
         torch::Tensor accuracy = consistency.mean();
 
-        //系列全体が合っているかどうか
+        //系列全体の精度(一致度)
         consistency = (consistency.mean(0) == 1.0).to(torch::kFloat32);
         torch::Tensor perfect_acc = consistency.mean();
 
