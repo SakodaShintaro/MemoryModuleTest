@@ -214,7 +214,7 @@ void treeTaskBatch() {
 //    torch::optim::SGD optimizer(model->parameters(), sgd_option);
     torch::optim::Adam optimizer(model->parameters(), 4e-3);
 
-    constexpr int64_t STEP_NUM = 100000;
+    constexpr int64_t STEP_NUM = 200000;
     constexpr int64_t BATCH_SIZE = 256;
     constexpr int64_t INTERVAL = STEP_NUM / 25;
     float curr_loss = 0.0, curr_acc = 0.0, curr_perf_acc = 0.0;
