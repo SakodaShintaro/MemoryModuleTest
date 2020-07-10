@@ -194,7 +194,7 @@ void treeTask() {
 }
 
 void treeTaskBatch() {
-    constexpr int64_t MAX_NODE_NUM = 20;
+    constexpr int64_t MAX_NODE_NUM = 50;
     constexpr int64_t INPUT_DIM = MAX_NODE_NUM + 1;
     constexpr int64_t OUTPUT_DIM = MAX_NODE_NUM;
 
@@ -214,7 +214,7 @@ void treeTaskBatch() {
 //    torch::optim::SGD optimizer(model->parameters(), sgd_option);
     torch::optim::Adam optimizer(model->parameters());
 
-    constexpr int64_t STEP_NUM = 50000;
+    constexpr int64_t STEP_NUM = 100000;
     constexpr int64_t BATCH_SIZE = 64;
     constexpr int64_t INTERVAL = STEP_NUM / 25;
     float curr_loss = 0.0, curr_acc = 0.0, curr_perf_acc = 0.0;
