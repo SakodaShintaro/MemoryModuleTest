@@ -212,12 +212,19 @@ void treeTaskBatch() {
 //    torch::optim::SGDOptions sgd_option(0.1);
 //    sgd_option.momentum(0.9);
 //    torch::optim::SGD optimizer(model->parameters(), sgd_option);
-    torch::optim::Adam optimizer(model->parameters());
+    torch::optim::Adam optimizer(model->parameters(), 4e-3);
 
     constexpr int64_t STEP_NUM = 100000;
-    constexpr int64_t BATCH_SIZE = 64;
+    constexpr int64_t BATCH_SIZE = 256;
     constexpr int64_t INTERVAL = STEP_NUM / 25;
     float curr_loss = 0.0, curr_acc = 0.0, curr_perf_acc = 0.0;
+
+    //デバイスの設定
+    std::cout << (torch::cuda::is_available() ?
+                  "CUDA is available." :
+                  "CUDA is not available.") << std::endl;
+    torch::Device device = (torch::cuda::is_available() ? torch::kCUDA : torch::kCPU);
+    model->to(device);
 
     std::mt19937_64 engine(std::random_device{}());
     std::uniform_int_distribution<int64_t> dist_node_num(MAX_NODE_NUM, MAX_NODE_NUM);
@@ -271,9 +278,9 @@ void treeTaskBatch() {
             }
         }
 
-        torch::Tensor input_tensor = torch::tensor(input).view({ seq_len, BATCH_SIZE, INPUT_DIM });
+        torch::Tensor input_tensor = torch::tensor(input).view({ seq_len, BATCH_SIZE, INPUT_DIM }).to(device);
         torch::Tensor teacher_tensor = torch::tensor(teacher).view({ seq_len, BATCH_SIZE, OUTPUT_DIM });
-        teacher_tensor = teacher_tensor.slice(0, input_len);
+        teacher_tensor = teacher_tensor.slice(0, input_len).to(device);
 
         //(seq_len, batch, output_size)
         torch::Tensor output_without_softmax = model->forwardSequence(input_tensor);
