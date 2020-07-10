@@ -13,7 +13,7 @@ add_executable(MemoryModuleTest
         main.cpp
         differential_neural_computer.cpp
         lstm.cpp
-        tree_task.cpp
+        task.cpp
         )
 
 target_link_libraries(MemoryModuleTest  "${TORCH_LIBRARIES}")

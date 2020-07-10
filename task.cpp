@@ -75,6 +75,12 @@ std::vector<int64_t> bfs(const Tree& tree, int64_t node) {
     return result;
 }
 
+std::vector<float> onehot(int64_t x, int64_t n) {
+    std::vector<float> ret(n, 0);
+    ret[x] = 1.0;
+    return ret;
+}
+
 void treeTask() {
     constexpr int64_t MAX_NODE_NUM = 6;
     constexpr int64_t INPUT_DIM = MAX_NODE_NUM + 1;
