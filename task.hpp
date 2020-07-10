@@ -4,7 +4,6 @@
 #include <vector>
 #include <cstdint>
 
-void echoTask();
 void treeTask();
 void treeTaskBatch();
 

@@ -13,7 +13,6 @@ add_executable(MemoryModuleTest
         main.cpp
         differential_neural_computer.cpp
         lstm.cpp
-        echo_task.cpp
         tree_task.cpp
         )
 
