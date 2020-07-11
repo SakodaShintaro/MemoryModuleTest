@@ -163,3 +163,99 @@ void DNCImpl::resetState() {
     wr = torch::zeros({ N, R });
     ww = torch::zeros({ N, 1 });
 }
+
+torch::Tensor DNCImpl::forwardSequence(const torch::Tensor& input) {
+    resetState();
+
+    //inputのshapeは(seq_len, batch, input_size)
+    int64_t seq_len = input.size(0);
+    int64_t batch = input.size(1);
+    for (int64_t _ = 0; _ < seq_len; _++) {
+
+    }
+
+    torch::Tensor x = input[0];
+
+    //x = (batch, X), r = (batch, R * W)
+    torch::Tensor chi = torch::cat({ x, r }, 1);
+    chi = chi.view({ 1, batch, X + R * W });
+
+    //out = (1, batch, Y + W * R + 3 * W + 5 * R + 3)
+    torch::Tensor out = controller->forward(chi);
+
+    //ここで余計な次元を削減
+    //out = (batch, Y + W * R + 3 * W + 5 * R + 3)
+    out = out.view({ batch, -1 });
+
+    //v = (1, Y)
+    torch::Tensor v = l_Wy->forward(out);
+
+    //xi = (1, W * R + 3 * W + 5 * R + 3)
+    torch::Tensor xi = l_Wxi->forward(out);
+
+    std::vector<torch::Tensor> split = torch::split_with_sizes(xi, { W * R, R, W, 1, W, W, R, 1, 1, 3 * R }, 1);
+    assert(split.size() == 10);
+    torch::Tensor kr = split[0];
+    torch::Tensor beta_r = split[1];
+    torch::Tensor kw = split[2];
+    torch::Tensor beta_w = split[3];
+    torch::Tensor e = split[4];
+    torch::Tensor nu = split[5];
+    torch::Tensor f = split[6];
+    torch::Tensor ga = split[7];
+    torch::Tensor gw = split[8];
+    torch::Tensor pi = split[9];
+
+    //kr = (R, W)
+    kr = kr.view({ R, W });
+    beta_r = 1 + torch::softplus(beta_r);
+    beta_w = 1 + torch::softplus(beta_w);
+    e = torch::sigmoid(e);
+    f = torch::sigmoid(f);
+    ga = torch::sigmoid(ga);
+    gw = torch::sigmoid(gw);
+    pi = torch::softmax(pi.view({ R, 3 }), 1);
+
+    torch::Tensor psi_mat = 1 - torch::matmul(torch::ones({ N, 1 }), f) * wr;
+    torch::Tensor psi = torch::ones({ N, 1 });
+    for (int64_t i = 0; i < R; i++) {
+        psi = psi * psi_mat.slice(1, i, i + 1).view({ N, 1 });
+    }
+
+    u = (u + ww - (u * ww)) * psi;
+
+    torch::Tensor a = u2a(u).view({ N, 1 });
+    torch::Tensor cw = C(M, kw, beta_w);
+    ww = torch::matmul(torch::matmul(a, ga) + torch::matmul(cw, 1.0 - ga), gw);
+
+    //Write Memory
+    M = M * (torch::ones({ N, W }) - torch::matmul(ww, e)) + torch::matmul(ww, nu);
+
+    p = (1.0 - torch::matmul(torch::ones({ N, 1 }), torch::sum(ww).view({ 1, 1 }))) * p + ww;
+    torch::Tensor ww_mat = torch::matmul(ww, torch::ones({ 1, N }));
+    L = (1.0 - ww_mat - torch::t(ww_mat)) * L + torch::matmul(ww, torch::t(p));
+    L = L * (torch::ones({ N, N }) - torch::eye(N));
+
+    torch::Tensor fw = torch::matmul(L, wr);
+    torch::Tensor bw = torch::matmul(torch::t(L), wr);
+
+    std::vector<torch::Tensor> cr_list;
+    for (int64_t i = 0; i < R; i++) {
+        cr_list.push_back(C(M, kr[i].view({ 1, W }), beta_r[0][i].view({ 1, 1 })));
+    }
+
+    torch::Tensor cr = torch::cat(cr_list);
+
+    torch::Tensor bacrfo = torch::cat({
+                                              torch::t(bw).view({ R, N, 1 }),
+                                              torch::t(cr).view({ R, N, 1 }),
+                                              torch::t(fw).view({ R, N, 1 }),
+                                      }, 2);
+    pi = pi.view({ R, 3, 1 });
+    wr = torch::t(torch::bmm(bacrfo, pi).view({ R, N }));
+
+    //read from memory, r = (1, R * W)
+    r = torch::matmul(torch::t(M), wr).view({ 1, R * W });
+
+    return l_Wr->forward(r) + v;
+}

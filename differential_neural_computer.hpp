@@ -31,6 +31,9 @@ public:
     static torch::Tensor C(const torch::Tensor& M, const torch::Tensor& k, const torch::Tensor& beta);
     static torch::Tensor u2a(const torch::Tensor& u);
     void resetState();
+
+    //shape(seq_len, batch, input_size)のinputを入力として(seq_len, batch, output_size)をoutputする関数
+    torch::Tensor forwardSequence(const torch::Tensor& input);
 private:
     int64_t X, Y, N, W, R;
     Controller controller{ nullptr };
